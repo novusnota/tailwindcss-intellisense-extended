@@ -60,7 +60,8 @@ export class OxideSession {
 
   private async start(): Promise<ServerHandle> {
     // 1. Start the new process
-    let helper = proc.fork(helperPath)
+    // Keep helper logs out of the language server's stdio protocol.
+    let helper = proc.fork(helperPath, { stdio: ['ignore', 'ignore', 'inherit', 'ipc'] })
 
     // 2. If the process fails to spawn we want to throw
     //

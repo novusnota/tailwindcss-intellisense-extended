@@ -41,6 +41,7 @@ import { customClassesIn } from './util/classes'
 import { IS_SCRIPT_SOURCE, IS_TEMPLATE_SOURCE } from './metadata/extensions'
 import * as postcss from 'postcss'
 import { findFileDirective } from './completions/file-paths'
+import { withExpandedAliases } from './completions/expanded-aliases'
 import type { ThemeEntry } from './util/v4'
 import { segment } from './util/segment'
 import { resolveKnownThemeKeys, resolveKnownThemeNamespaces } from './util/v4/theme-keys'
@@ -297,36 +298,44 @@ export function completionsFromClassList(
     }
 
     return withDefaults(
-      {
-        isIncomplete: false,
-        items: items.concat(
-          state.classList.reduce<CompletionItem[]>((items, [className, { color }], index) => {
-            if (state.blocklist?.includes([...existingVariants, className].join(state.separator))) {
+      withExpandedAliases(
+        state,
+        {
+          isIncomplete: false,
+          items: items.concat(
+            state.classList.reduce<CompletionItem[]>((items, [className, { color }], index) => {
+              if (
+                state.blocklist?.includes([...existingVariants, className].join(state.separator))
+              ) {
+                return items
+              }
+
+              let kind = color ? CompletionItemKind.Color : CompletionItemKind.Constant
+              let documentation: string | undefined
+
+              if (color && typeof color !== 'string') {
+                documentation = formatColor(color)
+              }
+
+              if (prefix.length > 0 && existingVariants.length === 0) {
+                className = `${prefix}:${className}`
+              }
+
+              items.push({
+                label: className,
+                kind,
+                ...(documentation ? { documentation } : {}),
+                sortText: naturalExpand(index, state.classList.length),
+              })
+
               return items
-            }
-
-            let kind = color ? CompletionItemKind.Color : CompletionItemKind.Constant
-            let documentation: string | undefined
-
-            if (color && typeof color !== 'string') {
-              documentation = formatColor(color)
-            }
-
-            if (prefix.length > 0 && existingVariants.length === 0) {
-              className = `${prefix}:${className}`
-            }
-
-            items.push({
-              label: className,
-              kind,
-              ...(documentation ? { documentation } : {}),
-              sortText: naturalExpand(index, state.classList.length),
-            })
-
-            return items
-          }, [] as CompletionItem[]),
-        ),
-      },
+            }, [] as CompletionItem[]),
+          ),
+        },
+        partialClassName.slice(offset),
+        existingVariants,
+        important,
+      ),
       {
         data: {
           ...(state.completionItemData ?? {}),
@@ -529,34 +538,40 @@ export function completionsFromClassList(
 
     if (state.classList) {
       return withDefaults(
-        {
-          isIncomplete: false,
-          items: items.concat(
-            state.classList.reduce<CompletionItem[]>((items, [className, { color }], index) => {
-              if (
-                state.blocklist?.includes([...existingVariants, className].join(state.separator))
-              ) {
+        withExpandedAliases(
+          state,
+          {
+            isIncomplete: false,
+            items: items.concat(
+              state.classList.reduce<CompletionItem[]>((items, [className, { color }], index) => {
+                if (
+                  state.blocklist?.includes([...existingVariants, className].join(state.separator))
+                ) {
+                  return items
+                }
+
+                let kind = color ? CompletionItemKind.Color : CompletionItemKind.Constant
+                let documentation: string | undefined
+
+                if (color && typeof color !== 'string') {
+                  documentation = formatColor(color)
+                }
+
+                items.push({
+                  label: className,
+                  kind,
+                  ...(documentation ? { documentation } : {}),
+                  sortText: naturalExpand(index, state.classList.length),
+                })
+
                 return items
-              }
-
-              let kind = color ? CompletionItemKind.Color : CompletionItemKind.Constant
-              let documentation: string | undefined
-
-              if (color && typeof color !== 'string') {
-                documentation = formatColor(color)
-              }
-
-              items.push({
-                label: className,
-                kind,
-                ...(documentation ? { documentation } : {}),
-                sortText: naturalExpand(index, state.classList.length),
-              })
-
-              return items
-            }, [] as CompletionItem[]),
-          ),
-        },
+              }, [] as CompletionItem[]),
+            ),
+          },
+          partialClassName.slice(offset),
+          existingVariants,
+          important,
+        ),
         {
           data: {
             ...(state.completionItemData ?? {}),

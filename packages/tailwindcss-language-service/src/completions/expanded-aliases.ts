@@ -131,7 +131,7 @@ export function withExpandedAliases(
       label: `${displayPrefix}${label}`,
       detail: item.label,
       kind: item.kind,
-      sortText: item.sortText,
+      sortText: `!${item.sortText}`,
       insertText: item.label,
       textEditText: item.label,
       data: {

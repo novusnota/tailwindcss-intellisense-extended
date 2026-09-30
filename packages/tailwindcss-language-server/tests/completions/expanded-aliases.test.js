@@ -134,6 +134,17 @@ for (let fixture of ['basic', 'v4/basic']) {
       expect(aliases(await complete(c.client, 'background-not-a-project-color-'))).toEqual([])
     })
 
+    test('ranks matching aliases before ordinary classes and variants', async () => {
+      let result = await complete(c.client, 'background-green-')
+      let expanded = aliases(result)
+      let firstOrdinarySort = result.items
+        .filter((item) => !item.data?.className)
+        .map((item) => item.sortText)
+        .sort()[0]
+      expect(expanded.length).toBeGreaterThan(0)
+      expect(expanded.every((item) => item.sortText < firstOrdinarySort)).toBe(true)
+    })
+
     test('disambiguates mixed families with the longest complete stem', async () => {
       for (let [stem, allowed, excluded] of [
         ['background-color-', 'background-color-green-500', 'background-color-cover'],
